@@ -83,3 +83,22 @@ class UsernameCountView(APIView):
         }
 
         return Response(data)
+
+
+class MobileCountView(APIView):
+    """
+    手机号数量
+    """
+
+    def get(self, request, mobile):
+        """
+        获取指定的手机号数量
+        """
+        count = User.objects.filter(mobile=mobile).count()
+
+        data = {
+            "mobile": mobile,
+            "count": count
+        }
+
+        return Response(data)
