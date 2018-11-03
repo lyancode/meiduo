@@ -11,6 +11,7 @@ from meiduo_mall.libs.captcha.captcha import captcha
 from meiduo_mall.libs.yuntongxun.sms import CCP
 from . import constants
 from . import serializers
+from celery_tasks.sms.tasks import send_sms_code
 
 
 class ImageCodeView(APIView):
@@ -54,8 +55,11 @@ class SMSCodeView(GenericAPIView):
         pl.execute()
 
         # 发送短信
-        ccp = CCP()
-        time = str(constants.SMS_CODE_REDIS_EXPIRES / 60)
-        ccp.send_template_sms(mobile, [sms_code, time], constants.SMS_CODE_TEMP_ID)
+        # ccp = CCP()
+        # 使用round保留一位小数
+        # time = str(round(constants.SMS_CODE_REDIS_EXPIRES / 60))
+        # ccp.send_template_sms(mobile, [sms_code, time], constants.SMS_CODE_TEMP_ID)
+        # 使用celery完成异步任务
+        send_sms_code.delay(mobile, sms_code)
 
         return Response({'message': 'OK'})
