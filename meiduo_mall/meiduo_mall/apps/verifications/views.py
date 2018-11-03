@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from meiduo_mall.libs.captcha.captcha import captcha
 
 from meiduo_mall.libs.yuntongxun.sms import CCP
+from users.models import User
 from . import constants
 from . import serializers
 from celery_tasks.sms.tasks import send_sms_code
@@ -63,3 +64,22 @@ class SMSCodeView(GenericAPIView):
         send_sms_code.delay(mobile, sms_code)
 
         return Response({'message': 'OK'})
+
+
+class UsernameCountView(APIView):
+    """
+    判断用户名是否存在
+    """
+
+    def get(self, request, username):
+        """
+        获取指定用户名数量，1为存在，0为不存在
+        """
+        count = User.objects.filter(username=username).count()
+
+        data = {
+            "username": username,
+            "count": count
+        }
+
+        return Response(data)
