@@ -109,3 +109,4 @@ __MACOSX
 migrations/
 makemigretions
 migrations
+logs/
