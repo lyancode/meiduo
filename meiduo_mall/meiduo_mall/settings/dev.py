@@ -219,9 +219,9 @@ AUTH_USER_MODEL = 'users.User'
 
 
 # Django的认证后端方法
-# AUTHENTICATION_BACKENDS = [
-#     'users.utils.UsernameMobileAuthBackend',
-# ]
+AUTHENTICATION_BACKENDS = [
+    'users.utils.UsernameMobileAuthBackend',
+]
 
 
 # CORS
