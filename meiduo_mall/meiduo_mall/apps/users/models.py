@@ -29,3 +29,20 @@ class User(AbstractUser):
         token = serializer.dumps(data)
 
         return token.decode()
+
+
+    @staticmethod
+    def check_send_sms_code_token(token):
+        """
+        校验access token
+        :param token: access tokern
+        :return: mobile None
+        """
+        serialier = TJWSSerializer(settings.SECRET_KEY, constants.SEND_SMS_CODE_TOKEN_EXIPIRES)
+        try:
+            data = serialier.loads(token)
+        except BadData:
+            return None
+        else:
+            mobile = data.get('mobile')
+            return mobile

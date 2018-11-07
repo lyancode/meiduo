@@ -2,6 +2,7 @@ import random
 
 from django.http.response import HttpResponse
 from django_redis import get_redis_connection
+from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -63,4 +64,42 @@ class SMSCodeView(GenericAPIView):
         # 使用celery完成异步任务
         send_sms_code.delay(mobile, sms_code)
 
+        return Response({'message': 'OK'})
+
+
+class SMSCodeByTokenView(APIView):
+    """
+    根据access_token发送短信
+    """
+    def get(self, request):
+        # 获取并校验accss_token
+        access_token = request.query_params.get('access_token')
+        if not access_token:
+            return Response({'message':'缺少access token'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 从access_token中取出手机号
+        mobile = User.check_send_sms_code_token(access_token)
+        if mobile is None:
+            return Response({'message': '无效的access token'}, status=status.HTTP_400_BAD_REQUEST)
+        # 判断手机号发送的次数
+        redis_conn = get_redis_connection('verify_codes')
+        send_flag = redis_conn.get('send_flag_%s' % mobile)
+        if send_flag:
+            return Response({"message": "发送短信次数过于频"}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        # 生成短信验证码
+        # 发送短信验证码
+        sms_code = '%06d' % random.randint(0, 999999)
+
+        # 使用redis的pipeline管道一次执行多个命令
+        pl = redis_conn.pipeline()
+        pl.setex('sms_%s' % mobile, constants.SMS_CODE_REDIS_EXPIRES, sms_code)
+        pl.setex('send_flag_%s' % mobile, constants.SEND_SMS_CODE_INTERVAL, 1)
+        # 让管道执行命令
+        pl.execute()
+
+        # 发送短信
+        # 使用celery发布异步任务
+        send_sms_code.delay(mobile, sms_code)
+
+        # 返回
         return Response({'message': 'OK'})
