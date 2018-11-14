@@ -6,8 +6,9 @@ import logging
 
 from rest_framework_jwt.settings import api_settings
 
-from .models import User
+from .models import User, Address
 from .utils import get_user_by_account
+from celery_tasks.emails.tasks import send_verify_email
 
 logger = logging.getLogger('django')
 
@@ -127,8 +128,8 @@ class ResetPasswordSerializer(serializers.ModelSerializer):
     """
     重置密码序列化器
     """
-    password2 = serializers.CharField(label='确认密码',  write_only=True)
-    access_token = serializers.CharField(label='操作token',  write_only=True)
+    password2 = serializers.CharField(label='确认密码', write_only=True)
+    access_token = serializers.CharField(label='操作token', write_only=True)
 
     class Meta:
         model = User
@@ -169,3 +170,78 @@ class ResetPasswordSerializer(serializers.ModelSerializer):
         instance.set_password(validated_data['password'])
         instance.save()
         return instance
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    """
+    用户详细信息序列化器
+    """
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'mobile', 'email', 'email_active')
+
+
+class EmailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'email')
+        extra_kwargs = {
+            'email': {
+                'required': True
+            }
+        }
+
+    def update(self, instance, validated_data):
+        """
+        重写更新方法,添加发送邮件
+        :param instance: user
+        :param validated_data:经过验证的数据
+        :return: instance
+        """
+        email = validated_data['email']
+        instance.email = email
+        instance.save()
+
+        # 生成激活链接
+        verify_url = instance.generate_email_verify_url()
+        # 发送验证邮件
+        send_verify_email.delay(email, verify_url)
+
+        return instance
+
+
+class UserAddressSerializer(serializers.ModelSerializer):
+    """
+    用户地址序列化器
+    """
+    province = serializers.StringRelatedField(read_only=True)
+    city = serializers.StringRelatedField(read_only=True)
+    district = serializers.StringRelatedField(read_only=True)
+    province_id = serializers.IntegerField(label='省ID', required=True)
+    city_id = serializers.IntegerField(label='市ID', required=True)
+    district_id = serializers.IntegerField(label='区ID', required=True)
+    mobile = serializers.RegexField(label='手机号', regex=r'^1[3-9]\d{9}$')
+
+    class Meta:
+        model = Address
+        exclude = ('user', 'is_deleted', 'create_time', 'update_time')
+
+    def create(self, validated_data):
+        """
+        保存
+        """
+        # Address模型类中有user属性，将user对象添加到模型类的创建参数中
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class AddressTitleSerializer(serializers.ModelSerializer):
+    """
+    地址标题
+    """
+    class Meta:
+        model = Address
+        fields = ('title',)
+
+

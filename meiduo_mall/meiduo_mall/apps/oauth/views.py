@@ -63,7 +63,6 @@ class OAuthQQUserView(GenericAPIView):
             return Response({'access_token': access_token})
         else:
             # 如果已经绑定,直接生成登录凭证JWT token, 并返回
-            # 如果未绑定, 手动创建接下来绑定身份使用的access_token,并返回
             user = oauth_user.user
 
             jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
