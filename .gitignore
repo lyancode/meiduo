@@ -106,7 +106,7 @@ venv.bak/
 .idea/*
 __MACOSX
 .DS_Store
-migrations/
-makemigretions
-migrations
+# migrations/
+# makemigretions
+# migrations
 logs/
