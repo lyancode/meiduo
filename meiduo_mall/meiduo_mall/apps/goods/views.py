@@ -2,8 +2,9 @@ from django.shortcuts import render
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import ListAPIView
 from rest_framework_extensions.cache.mixins import ListCacheResponseMixin
+from drf_haystack.viewsets import HaystackViewSet
 
-from .serializers import SKUSerializer
+from .serializers import SKUSerializer, SKUIndexSerializer
 from .models import SKU
 from . import constants
 
@@ -15,6 +16,7 @@ class HotSKUListView(ListCacheResponseMixin, ListAPIView):
     /categories/(?P<category_id>\d+)/hotskus/
     """
     serializer_class = SKUSerializer
+    pagination_class = None
 
     def get_queryset(self):
         category_id = self.kwargs.get('category_id')
@@ -35,3 +37,12 @@ class SKUListView(ListAPIView):
     def get_queryset(self):
         categroy_id = self.kwargs.get("category_id")
         return SKU.objects.filter(category_id=categroy_id, is_launched=True)
+
+
+class SKUSearchViewSet(HaystackViewSet):
+    """
+    SKU搜索
+    """
+    index_models = [SKU]
+
+    serializer_class = SKUIndexSerializer
