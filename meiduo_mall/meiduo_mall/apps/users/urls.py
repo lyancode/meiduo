@@ -18,6 +18,7 @@ urlpatterns = [
     url(r'^user/$', views.UserDetailView.as_view()),  # 用户个人中心数据
     url(r'^emails/$', views.EmailView.as_view()),  # 保存用户邮箱
     url(r'^emails/verification/$', views.EmailVerifyView.as_view()), #激活邮箱
+    url(r'browse_histories/$', views.UserHistoryView.as_view()),
 ]
 
 urlpatterns += router.urls
